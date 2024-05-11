@@ -41,23 +41,28 @@ function basicSort(aValue: any, bValue: any, isAsc: boolean) {
 
 export function filterArray(
   data: Array<{}>,
-  searchFields?: { [field: string]: string | number | boolean | null }
+  searchFields?: { [field: string]: string | number | boolean | null | { _anyField?: string } }
 ): Array<{}> {
   if (!searchFields || isEmpty(searchFields)) {
     return data;
   }
   const searchObjs: SearchObj[] = [];
+  const anyField = searchFields._anyField;
+  delete searchFields._anyField;
   Object.keys(searchFields).map((fieldName) => {
     const fieldValue = searchFields[fieldName];
     const getSubObjects = getFieldReferences(fieldName, fieldValue);
     searchObjs.push(...getSubObjects);
   });
-  const filtered = data.filter((row) =>
-    searchObjs.reduce((acc, cur) => {
+  const filtered = data.filter((row) => {
+    if (anyField) {
+      return Object.keys(row).some((field) => doesRowMatch(row, field, anyField));
+    }
+    return searchObjs.reduce((acc, cur) => {
       const res = doesRowMatch(row, cur.searchField, cur.searchValue);
       return res && acc;
-    }, true as boolean)
-  );
+    }, true as boolean);
+  });
   return filtered;
 }
 
